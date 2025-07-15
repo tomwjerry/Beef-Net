@@ -14,9 +14,15 @@ Beef-Net relies on [Beef-OpenSSL](https://github.com/thibmo/Beef-OpenSSL) for ha
 4. In the Beef IDE, add Beef-Net to your project (Properties > Dependencies)
 5. Have fun!
 
+## Where is the HTTP functionality?
+
+I moved the HTTP socket, client, and server to https://github.com/tomwjerry/Beef-Http-Server/tree/main
+In the future, FTP, SMTP and Telnet will also be in own repos. So that one can download the desired
+networking service without needing the others. Beef-Net will be required for those, and most likely Beef-OpenSSL.
+I will drop the Beef-OpenSSL from this library in the future, but as with most networking, SSL is desired...
+
 ## Examples
 
 - [FTP Client](https://github.com/thibmo/Beef-Net/tree/main/Examples/FtpClient)
-- [HTTP Client](https://github.com/thibmo/Beef-Net/tree/main/Examples/HttpClient)
 - [SMTP Client](https://github.com/thibmo/Beef-Net/tree/main/Examples/SmtpClient)
 - [Telnet Client](https://github.com/thibmo/Beef-Net/tree/main/Examples/Telnet)
