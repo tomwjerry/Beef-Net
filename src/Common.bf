@@ -8,7 +8,7 @@ namespace Beef_Net
 	public struct SockAddr
 	{
 		public uint16 sa_family;  // address family
-		public uint8[14] sa_data; // up to 14 bytes of direct address
+		public uint8[26] sa_data; // up to 26 bytes of direct address
 	}
 
 	public struct SocketAddress
@@ -333,6 +333,9 @@ namespace Beef_Net
 
 #if BF_PLATFORM_WINDOWS
 			int n = WinSock2.getaddrinfo(aName.Ptr, null, &h, out r);
+#else
+            r = scope AddrInfo();
+            int n = UnixSock.getaddrinfo(aName.Ptr, null, &h, &r);
 #endif
 			
 			if (n != 0)
@@ -397,29 +400,32 @@ namespace Beef_Net
 			return true;
 		}
 
-		[Inline]
 		public static bool IsBlockError(int32 aErrorNum) =>
 #if BF_PLATFORM_WINDOWS
 			aErrorNum == WSAEWOULDBLOCK;
+#else
+            aErrorNum == EWOULDBLOCK;
 #endif
 
-		[Inline]
 		public static bool IsNonFatalError(int32 aErrorNum) =>
 #if BF_PLATFORM_WINDOWS
 			(aErrorNum == WSAEINVAL)        || (aErrorNum == WSAEFAULT)       ||
 			(aErrorNum == WSAEOPNOTSUPP)    || (aErrorNum == WSAEMSGSIZE)     ||
 			(aErrorNum == WSAEADDRNOTAVAIL) || (aErrorNum == WSAEAFNOSUPPORT) ||
 			(aErrorNum == WSAEDESTADDRREQ);
+#else
+            (aErrorNum == EINVAL)        || (aErrorNum == EFAULT)       ||
+            (aErrorNum == EOPNOTSUPP)    || (aErrorNum == EMSGSIZE)     ||
+            (aErrorNum == EADDRNOTAVAIL) || (aErrorNum == EAFNOSUPPORT) ||
+            (aErrorNum == EDESTADDRREQ);
 #endif
 
-		[Inline]
 		public static bool IsPipeError(int32 aErrorNum)
 		{
 #if BF_PLATFORM_WINDOWS
 			bool result = aErrorNum == WSAECONNRESET;
-	#if DEBUG
-			System.Diagnostics.Debug.WriteLine("Warning - check these ambiguous errors");
-	#endif
+#else
+            bool result = aErrorNum == ECONNRESET;
 #endif
 			return result;
 		}
@@ -427,6 +433,8 @@ namespace Beef_Net
 		public static int32 SocketError() =>
 #if BF_PLATFORM_WINDOWS
 			(int32)WinSock2.WSAGetLastError();
+#else
+            geterrno();
 #endif
 
 #if BF_PLATFORM_LINUX
@@ -469,93 +477,126 @@ namespace Beef_Net
 		public static fd_handle Accept(fd_handle aHandle, SockAddr* aAddr, int32* aAddrLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.accept(aHandle, (sockaddr_in*)aAddr, aAddrLen);
+#else
+            UnixSock.accept(aHandle, aAddr, aAddrLen);
 #endif
 
 		public static int32 Bind(fd_handle aHandle, SockAddr* aName, int32 aNameLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.bind(aHandle, (sockaddr_in*)aName, aNameLen);
+#else
+            UnixSock.bind(aHandle, aName, aNameLen);
 #endif
 
 		public static int32 CloseSocket(fd_handle aHandle) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.closesocket(aHandle);
+#else
+            UnixSock.close(aHandle);
 #endif
 
 		public static int32 Connect(fd_handle aHandle, SockAddr* aName, int32 aNameLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.connect(aHandle, (sockaddr_in*)aName, aNameLen);
+#else
+            UnixSock.connect(aHandle, aName, aNameLen);
 #endif
 
 		public static int32 IOCtlSocket(fd_handle aHandle, int32 cmd, uint32* aArgP) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.ioctlsocket(aHandle, cmd, aArgP);
+#else
+            UnixSock.ioctl(aHandle, cmd, (int*)aArgP);
 #endif
 
 		public static int32 GetPeerName(fd_handle aHandle, SockAddr* aName, int32* aNameLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.getpeername(aHandle, (sockaddr_in*)aName, aNameLen);
+#else
+            UnixSock.getpeername(aHandle, aName, aNameLen);
 #endif
 
 		public static int32 GetSockName(fd_handle aHandle, SockAddr* aName, int32* aNameLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.getsockname(aHandle, (sockaddr_in*)aName, aNameLen);
+#else
+            UnixSock.getsockname(aHandle, aName, aNameLen);
 #endif
 
 		public static int32 SetSockOpt(fd_handle aHandle, int32 aLevel, int32 aOptName, void* aOptVal, int32 aOptLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.setsockopt(aHandle, aLevel, aOptName, aOptVal, aOptLen);
+#else
+            UnixSock.setsockopt(aHandle, aLevel, aOptName, aOptVal, aOptLen);
 #endif
-
+            
 		public static int32 GetSockOpt(fd_handle aHandle, int32 aLevel, int32 aOptName, void* aOptVal, int32* aOptLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.getsockopt(aHandle, aLevel, aOptName, aOptVal, aOptLen);
+#else
+            UnixSock.getsockopt(aHandle, aLevel, aOptName, aOptVal, aOptLen);
 #endif
 
 		public static int32 Listen(fd_handle aHandle, int32 aBacklog) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.listen(aHandle, aBacklog);
+#else
+            UnixSock.listen(aHandle, aBacklog);
 #endif
 
 		public static int32 Recv(fd_handle aHandle, uint8* aBuf, int32 aLen, int32 aFlags) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.recv(aHandle, aBuf, aLen, aFlags);
+#else
+            UnixSock.recv(aHandle, aBuf, aLen, aFlags);
 #endif
 
 		public static int32 RecvFrom(fd_handle aHandle, uint8* aBuf, int32 aLen, int32 aFlags, SockAddr* aFromAddr, int32* aFromLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.recvfrom(aHandle, aBuf, aLen, aFlags, (sockaddr_in*)aFromAddr, aFromLen);
+#else
+            UnixSock.recvfrom(aHandle, aBuf, aLen, aFlags, aFromAddr, aFromLen);
 #endif
 
 		public static int32 Select(int nfds, fd_set* aReadFds, fd_set* aWriteFds, fd_set* aExceptFds, TimeVal* timeout) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.select(nfds, aReadFds, aWriteFds, aExceptFds, timeout);
+#else
+            UnixSock.select((int32)nfds, aReadFds, aWriteFds, aExceptFds, timeout);
 #endif
 
 		public static int32 Send(fd_handle aHandle, uint8* aBuf, int32 aLen, int32 aFlags) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.send(aHandle, aBuf, aLen, aFlags);
+#else
+            UnixSock.send(aHandle, aBuf, aLen, aFlags);
 #endif
 
 		public static int32 SendTo(fd_handle aHandle, uint8* aBuf, int32 aLen, int32 aFlags, SockAddr* aToAddr, int32 aToLen) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.sendto(aHandle, aBuf, aLen, aFlags, (sockaddr_in*)aToAddr, aToLen);
+#else
+            UnixSock.sendto(aHandle, aBuf, aLen, aFlags, aToAddr, aToLen);
 #endif
 
 		public static int32 Shutdown(fd_handle aHandle, int32 aHow) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.shutdown(aHandle, aHow);
+#else
+            UnixSock.shutdown(aHandle, aHow);
 #endif
 
 		public static fd_handle Socket(int32 aAf, int32 aType, int32 aProtocol) =>
 #if BF_PLATFORM_WINDOWS
 			WinSock2.socket(aAf, aType, aProtocol);
+#else
+            UnixSock.shutdown(aAf, aType);
 #endif
 
 		/*
 		https://github.com/alrieckert/freepascal/blob/master/packages/rtl-extra/src/inc/sockets.inc
 		https://github.com/farshadmohajeri/extpascal/blob/master/SocketsDelphi.pas
 		https://students.mimuw.edu.pl/SO/Linux/Kod/include/linux/socket.h.html
-		D:\Program Files (x86)\Embarcadero\Studio\20.0\source\rtl\win\Winapi.Winsock2.pas
 		*/
 	}
 }

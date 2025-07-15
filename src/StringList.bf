@@ -266,7 +266,7 @@ namespace Beef_Net
 
 							// j is position of closing quote
 							String tmp = new .(aStr.Substring(i + 1, j - i - 1));
-							tmp.Replace(scope .(_quoteChar, 2), scope .(_quoteChar, 1));
+							tmp.Replace(scope String(_quoteChar, 2), scope String(_quoteChar, 1));
 							Add(tmp);
 							i = j + 1;
 						}
@@ -320,7 +320,7 @@ namespace Beef_Net
 
 							// j is position of closing quote
 							String tmp = new .(aStr.Substring(i + 1, j - i - 1));
-							tmp.Replace(scope .(_quoteChar, 2), scope .(_quoteChar, 1));
+							tmp.Replace(scope String(_quoteChar, 2), scope String(_quoteChar, 1));
 							Add(tmp);
 							i = j + 1;
 						}

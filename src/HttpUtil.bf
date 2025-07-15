@@ -217,7 +217,7 @@ namespace Beef_Net
 			return true;
 		}
 
-		public static bool SeparatePath(StringView aInPath, String aOutExtraPath, int32 aMode, SearchRec* aSearchRec = null)
+		public static bool SeparatePath(StringView aInPath, String aOutExtraPath, Platform.BfpFileAttributes aMode, SearchRec* aSearchRec = null)
 		{
 			var aSearchRec;
 			SearchRec lSearchRec = .();

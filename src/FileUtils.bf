@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace Beef_Net
 {
@@ -7,71 +8,63 @@ namespace Beef_Net
 	{
 		public int64 Time;
 		public int64 Size;
-		public int32 Attr;
-		public char16* Name;
-		public int32 ExcludeAttr;
-		public Windows.FindHandle FindHandle;
-		public Windows.NativeFindData FindData;
+		public Platform.BfpFileAttributes Attr;
+		public String Name;
+		public Platform.BfpFileAttributes ExcludeAttr;
+		public FileEnumerator FileFinder;
 
 		public DateTime TimeStamp { get { return DateTime.FromFileTime(Time); } }
 	}
 
 	public class FileUtils
 	{
-		public static int32 FindMatch(ref SearchRec aF, ref char16* aName)
+		public static int32 FindMatch(ref SearchRec aF, String aName)
 		{
 			// Find file with correct attribute
-			while (aF.FindData.mFileAttributes & aF.ExcludeAttr != 0)
-				if (!Windows.FindNextFileW(aF.FindHandle, ref aF.FindData))
-					return Windows.GetLastError();
+			while (aF.FileFinder.Current.GetFileAttributes() & aF.ExcludeAttr != 0)
+				if (!aF.FileFinder.MoveNext())
+					return -1; // TODO: Whats our error?
 
 			// Convert some attributes back
-			aF.Time = (int64)aF.FindData.mLastWriteTime;
-			aF.Size = aF.FindData.mFileSize.Value;
-			aF.Attr = aF.FindData.mFileAttributes;
-			aName = &aF.FindData.mFileName[0];
+			aF.Time = (int64)aF.FileFinder.Current.GetLastWriteTime().ToFileTime();
+			aF.Size = aF.FileFinder.Current.GetFileSize();
+			aF.Attr = aF.FileFinder.Current.GetFileAttributes();
+            aF.FileFinder.Current.GetFileName(aName);
 			return 0;
 		}
 
-		public static void InternalFindClose(ref Windows.FindHandle aHandle, ref Windows.NativeFindData aFindData)
+		public static void InternalFindClose(FileEnumerator fe)
 		{
-		   	if (!aHandle.IsInvalid)
-			{
-			    Windows.FindClose(aHandle);
-			    aHandle = .InvalidHandle;
-		    }
+		   	fe.Dispose();
 		}
 
-		public static int32 InternalFindFirst(StringView aPath, int32 aAttr, ref SearchRec aRslt, ref char16* aName)
+		public static int32 InternalFindFirst(StringView aPath, Platform.BfpFileAttributes aAttr, ref SearchRec aRslt, String aName)
 		{
-			aName = aPath.ToScopedNativeWChar!();
+			aName.Set(aPath);
 			aRslt.Attr = aAttr;
-			// $1e = faHidden or faSysFile or faVolumeID or faDirectory
-			aRslt.ExcludeAttr = (~aAttr) & 0x1E;
+			// $1e = faHidden or faSysFile or faVolumeID (appears to be deprecated so not used here) or faDirectory
+			aRslt.ExcludeAttr = (~aAttr) & .Hidden | .System | .Directory;
 
 			// FindFirstFile is a Win32 Call
-			aRslt.FindHandle = Windows.FindFirstFileW(aPath.ToScopedNativeWChar!(), ref aRslt.FindData);
+			aRslt.FileFinder = Directory.EnumerateFiles(aPath);
 
-			if (aRslt.FindHandle.IsInvalid)
-				return Windows.GetLastError();
+			// TODO: Check if FileFinder is invalid or something
 
 			// Find file with correct attribute
-			int32 result = FindMatch(ref aRslt, ref aName);
+			int32 result = FindMatch(ref aRslt, aName);
 
 			if (result != 0)
-				InternalFindClose(ref aRslt.FindHandle, ref aRslt.FindData);
+				InternalFindClose(aRslt.FileFinder);
 
 			return result;
 		}
 
-		public static int32 InternalFindNext(ref SearchRec aRslt, ref char16* aName) =>
-		  	Windows.FindNextFileW(aRslt.FindHandle, ref aRslt.FindData)
-				? FindMatch(ref aRslt, ref aName)
-		    	: Windows.GetLastError();
+		public static int32 InternalFindNext(ref SearchRec aRslt, String aName) =>
+            aRslt.FileFinder.MoveNext() ? 0 : -1; // TODO: Get error
 
-		public static int FindFirst(StringView aPath, int32 aAttr, ref SearchRec aRslt)
+		public static int FindFirst(StringView aPath, Platform.BfpFileAttributes aAttr, ref SearchRec aRslt)
 		{
-			int result = InternalFindFirst(aPath, aAttr, ref aRslt, ref aRslt.Name);
+			int result = InternalFindFirst(aPath, aAttr, ref aRslt, aRslt.Name);
 			/*
 		  	if (result == 0)
 		    	SetCodePage(Rslt.Name, DefaultRTLFileSystemCodePage);
@@ -81,7 +74,7 @@ namespace Beef_Net
 
 		public static int FindNext(ref SearchRec aRslt)
 		{
-			int result = InternalFindNext(ref aRslt, ref aRslt.Name);
+			int result = InternalFindNext(ref aRslt, aRslt.Name);
 
 			/*
 		  	if (result == 0)
@@ -91,6 +84,6 @@ namespace Beef_Net
 		}
 
 		public static void FindClose(ref SearchRec aF) =>
-			InternalFindClose(ref aF.FindHandle, ref aF.FindData);
+			InternalFindClose(aF.FileFinder);
 	}
 }

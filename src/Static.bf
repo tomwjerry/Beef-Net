@@ -31,7 +31,6 @@ namespace Beef_Net
 #endif
 		}
 
-#if BF_PLATFORM_WINDOWS
 		public const uint32 IOCPARM_MASK = (uint32)0x7FU;              // parameters must be < 128 bytes
 		public const uint32 IOC_VOID     = (uint32)0x20000000U;        // no parameters
 		public const uint32 IOC_OUT      = (uint32)0x40000000U;        // copy out parameters
@@ -363,6 +362,7 @@ namespace Beef_Net
 		public const int32 FD_MAX_EVENTS                   = 10;
 		public const int32 FD_ALL_EVENTS                   = (1 << FD_MAX_EVENTS) - 1;
 
+#if BF_PLATFORM_WINDOWS
 		// All Windows Sockets error constants are biased by WSABASEERR from the "normal"
 		public const int32 WSABASEERR = 10000;
 
@@ -500,6 +500,17 @@ namespace Beef_Net
 		public const uint32 WSA_WAIT_IO_COMPLETION  = 0x000000C0U; // WAIT_IO_COMPLETION;
 		public const uint32 WSA_WAIT_TIMEOUT        = 0x00000102U; // WAIT_TIMEOUT;
 		public const uint32 WSA_INFINITE            = 0xFFFFFFFFU; // INFINITE;
+#else
+        public const int32 EFAULT        = 14;
+        public const int32 EINVAL        = 22;
+        public const int32 EDESTADDRREQ  = 89;
+        public const int32 EMSGSIZE      = 90;	
+        public const int32 EOPNOTSUPP    = 95;
+        public const int32 EAFNOSUPPORT  = 97;
+        public const int32 EADDRNOTAVAIL = 99;
+        public const int32 ECONNRESET    = 108;
+        public const int32 EWOULDBLOCK   = 140;
+#endif
 
 		// WinSock 2 extension -- manifest constants for return values of the condition function
 		public const uint32 CF_ACCEPT = 0x0000;
@@ -535,6 +546,7 @@ namespace Beef_Net
 		public const int32 PROTO_RAW    = 255;
 		public const int32 PROTO_MAX    = 256;
 
+#if BF_PLATFORM_WINDOWS
 		[Inline]
 		public static uint32 _IO(uint32 x, uint32 y) =>
 			IOC_VOID | (x << 8) | y;

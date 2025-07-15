@@ -2,7 +2,7 @@ using System;
 
 namespace Beef_Net_Common
 {
-#if BF_PLATFORM_WINDOWS
+    #if BF_PLATFORM_WINDOWS
 	[CRepr]
 	struct ConsoleKeyInfo
 	{
@@ -377,7 +377,7 @@ namespace Beef_Net_Common
 		private static void* _stdInFile = null;
 		private static void* _stdOutFile = null;
         private static InputRecord _cachedInputRecord = .();
-	
+
 		[Import("kernel32.dll"), CLink, CallingConvention(.Stdcall)]
 		public static extern void* GetStdHandle(Handles nStdHandle);
 	
@@ -561,5 +561,17 @@ namespace Beef_Net_Common
 		    return info;
 		}
 	}
-#endif // BF_PLATFORM_WINDOWS
+#else // Other Platforms
+    static class ConsoleExt
+    {
+        public static void PrepHandles()
+        {
+        }
+
+        public static void ReadKey(bool what)
+        {
+            Console.Read();
+        }
+    }
+#endif
 }
