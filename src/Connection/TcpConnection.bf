@@ -71,12 +71,12 @@ namespace Beef_Net.Connection
 			case AF_INET:
 				{
 					l = sizeof(sockaddr_in);
-					n = Common.GetPeerName(sock.[Friend]_handle, (SockAddr*)&addr4, &l);
+					n = Socket.GetPeerName(sock.[Friend]_handle, (SockAddr*)&addr4, &l);
 				}
 			case AF_INET6:
 				{
 					l = sizeof(sockaddr_in6);
-					n = Common.GetPeerName(sock.[Friend]_handle, (SockAddr*)&addr6, &l);
+					n = Socket.GetPeerName(sock.[Friend]_handle, (SockAddr*)&addr6, &l);
 				}
 			default: Runtime.FatalError("Unknown SocketNet in ConnectAction");
 			}

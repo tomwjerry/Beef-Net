@@ -162,5 +162,11 @@ sealed static class UnixSock
     
     [CLink, CallingConvention(.Cdecl)]
     public extern static int32 shutdown(fd_handle sockfd, int how);
+
+    [LinkName("UnixHelper_geterrno"), CallingConvention(.Cdecl)]
+    public extern static int32 geterrno();
+
+    [LinkName("UnixHelper_seterrno"), CallingConvention(.Cdecl)]
+    public extern static void seterrno(int32 errnum);
 }
 #endif

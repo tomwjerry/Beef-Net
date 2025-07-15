@@ -53,6 +53,35 @@ namespace Beef_Net
 		}
 	}
 
+    [CRepr]
+    public struct SockAddr
+    {
+    	public uint16 sa_family;  // address family
+    	public uint8[26] sa_data; // up to 26 bytes of direct address
+    }
+
+    public struct SocketAddress
+    {
+    	public sa_family_t Family;
+    	public USockAddr u;
+
+    	[Union]
+    	public struct USockAddr
+    	{
+    		public sockaddr_in IPv4;
+    		public sockaddr_in6 IPv6;
+    	}
+    }
+
+    [CRepr]
+    public struct fd_set
+    {
+    	public uint fd_count;             // how many are SET?
+#if BF_PLATFORM_WINDOWS
+    	public uint[FD_SETSIZE] fd_array; // an array of SOCKETs
+#endif
+    }
+
 	/// Callback Event procedure for errors
 	public delegate void SocketErrorEvent(StringView aMsg, Socket aSocket);
 	/// Callback Event procedure for others
@@ -154,10 +183,10 @@ namespace Beef_Net
 			{
 				int32 arg;
 				done = true;
-				_handle = Common.Socket(_socketNet, _socketType, _protocol);
+				_handle = Socket(_socketNet, _socketType, _protocol);
 
 				if (_handle == INVALID_SOCKET)
-					return Bail("Socket error", Common.SocketError());
+					return Bail("Socket error", SocketError());
 
 				SetOptions();
 
@@ -165,8 +194,8 @@ namespace Beef_Net
 				{
 					arg = 1;
 
-					if (Common.SetSockOpt(_handle, SOL_SOCKET, SO_BROADCAST, &arg, sizeof(int32)) == SOCKET_ERROR)
-						return Bail("SetSockOpt error", Common.SocketError());
+					if (SetSockOpt(_handle, SOL_SOCKET, SO_BROADCAST, &arg, sizeof(int32)) == SOCKET_ERROR)
+						return Bail("SetSockOpt error", SocketError());
 				}
 
 				if (_reuseAddress)
@@ -179,8 +208,8 @@ namespace Beef_Net
 						opt = (int32)(~opt);
 #endif
 
-					if (Common.SetSockOpt(_handle, SOL_SOCKET, opt, &arg, sizeof(int32)) == SOCKET_ERROR)
-						return Bail("SetSockOpt error", Common.SocketError());
+					if (SetSockOpt(_handle, SOL_SOCKET, opt, &arg, sizeof(int32)) == SOCKET_ERROR)
+						return Bail("SetSockOpt error", SocketError());
 				}
 
 				// Darwin also needs `SO_NOSIGPIPE` to be set to 1
@@ -196,7 +225,7 @@ namespace Beef_Net
 		{
 			if (_socketType == SOCK_STREAM)
 			{
-				return Common.Send(_handle, aData, aSize, MSG);
+				return Send(_handle, aData, aSize, MSG);
 			}
 			else
 			{
@@ -207,12 +236,12 @@ namespace Beef_Net
 				case AF_INET:
 					{
 						addrLen = sizeof(sockaddr_in);
-						return Common.SendTo(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv4, addrLen);
+						return SendTo(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv4, addrLen);
 					}
 				case AF_INET6:
 					{
 						addrLen = sizeof(sockaddr_in6);
-						return Common.SendTo(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv6, addrLen);
+						return SendTo(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv6, addrLen);
 					}
 				}
 			}
@@ -220,11 +249,11 @@ namespace Beef_Net
 			return 0;
 		}
 
-		protected virtual int32 DoGet(uint8* aData, int32 aSize)
+		protected virtual int32 DoRecv(uint8* aData, int32 aSize)
 		{
 			if (_socketType == SOCK_STREAM)
 			{
-				return Common.Recv(_handle, aData, aSize, MSG);
+				return Recv(_handle, aData, aSize, MSG);
 			}
 			else
 			{
@@ -235,12 +264,12 @@ namespace Beef_Net
 				case AF_INET:
 					{
 						addrLen = sizeof(sockaddr_in);
-						return Common.RecvFrom(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv4, &addrLen);
+						return RecvFrom(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv4, &addrLen);
 					}
 				case AF_INET6:
 					{
 						addrLen = sizeof(sockaddr_in6);
-						return Common.RecvFrom(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv6, &addrLen);
+						return RecvFrom(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv6, &addrLen);
 					}
 				}
 			}
@@ -255,11 +284,11 @@ namespace Beef_Net
 
 			if (aResult == SOCKET_ERROR)
 			{
-				lastError = Common.SocketError();
+				lastError = SocketError();
 				String tmp = scope .(aOp.StringValue);
 				tmp.Append(" error");
 
-				if (Common.IsBlockError(lastError))
+				if (IsBlockError(lastError))
 				{
 					switch(aOp)
 					{
@@ -275,11 +304,11 @@ namespace Beef_Net
 						}
 					}
 				}
-				else if (Common.IsNonFatalError(lastError))
+				else if (IsNonFatalError(lastError))
 				{
 					LogError(tmp, lastError); // non-fatals don't cause disconnect
 				}
-				else if (aOp == .Send && Common.IsPipeError(lastError))
+				else if (aOp == .Send && IsPipeError(lastError))
 				{
 					LogError(tmp, lastError);
 					HardDisconnect(true);
@@ -315,7 +344,7 @@ namespace Beef_Net
 			sockaddr_in a = .();
 			int32 l = sizeof(sockaddr_in);
 
-			if (Common.GetSockName(_handle, (SockAddr*)&a, &l) > 0)
+			if (GetSockName(_handle, (SockAddr*)&a, &l) > 0)
 				Common.NetAddrToStr(a.sin_addr, aOutStr);
 		}
 
@@ -353,9 +382,9 @@ namespace Beef_Net
 		{
 			if (_handle != INVALID_SOCKET) // we already have a socket
 			{
-				if (!Common.SetBlocking(_handle, aValue))
+				if (!SetBlocking(_handle, aValue))
 				{
-					Bail("Error on SetNoDelay", Common.SocketError());
+					Bail("Error on SetNoDelay", SocketError());
 				}
 				else
 				{
@@ -386,9 +415,9 @@ namespace Beef_Net
 		{
 			if (_handle != INVALID_SOCKET) // we already have a socket
 			{
-				if (!Common.SetNoDelay(_handle, aValue))
+				if (!SetNoDelay(_handle, aValue))
 				{
-					Bail("Error on SetNoDelay", Common.SocketError());
+					Bail("Error on SetNoDelay", SocketError());
 				}
 				else
 				{
@@ -416,14 +445,14 @@ namespace Beef_Net
 			{
 				_connectionStatus = .None;
 
-				if (needShut && Common.Shutdown(_handle, SHUT_RDWR) != 0)
-					LogError("Shutdown error", Common.SocketError());
+				if (needShut && Shutdown(_handle, SHUT_RDWR) != 0)
+					LogError("Shutdown error", SocketError());
 
 				if (_eventer != null)
 					_eventer.UnregisterHandle(this);
 
-				if (Common.CloseSocket(_handle) != 0)
-					LogError("Closesocket error", Common.SocketError());
+				if (CloseSocket(_handle) != 0)
+					LogError("Closesocket error", SocketError());
 
 				_handle = INVALID_SOCKET;
 			}
@@ -437,8 +466,8 @@ namespace Beef_Net
 				{
 					_connectionStatus = .Disconnecting;
 
-					if (Common.Shutdown(_handle, SHUT_WR) != 0)
-						LogError("Shutdown error", Common.SocketError());
+					if (Shutdown(_handle, SHUT_WR) != 0)
+						LogError("Shutdown error", SocketError());
 				}
 				else
 				{
@@ -465,7 +494,7 @@ namespace Beef_Net
 				String tmp = scope .(aMsg);
 
 				if (aErrNum > 0)
-					Common.StrError(aErrNum, tmp);
+					StrError(aErrNum, tmp);
 
 				_onError(this, tmp);
 			}
@@ -534,14 +563,14 @@ namespace Beef_Net
 
 			SetupSocket(aPort, aIntf);
 
-			if (Common.Bind(_handle, GetIPAddressPointer(), GetIPAddressLength()) == SOCKET_ERROR)
-				Bail("Error on bind", Common.SocketError());
+			if (Bind(_handle, GetIPAddressPointer(), GetIPAddressLength()) == SOCKET_ERROR)
+				Bail("Error on bind", SocketError());
 			else
 				result = true;
 
 			if (_socketType == SOCK_STREAM && result)
-				if (Common.Listen(_handle, _listenBacklog) == SOCKET_ERROR)
-					result = Bail("Error on Listen", Common.SocketError());
+				if (Listen(_handle, _listenBacklog) == SOCKET_ERROR)
+					result = Bail("Error on Listen", SocketError());
 
 			return result;
 		}
@@ -553,7 +582,7 @@ namespace Beef_Net
 			if (_connectionStatus != .None)
 				Disconnect(true);
 
-			_handle = Common.Accept(aSerSock, GetIPAddressPointer(), &addrLen);
+			_handle = Accept(aSerSock, GetIPAddressPointer(), &addrLen);
 
 			if (_handle != INVALID_SOCKET)
 			{
@@ -563,7 +592,7 @@ namespace Beef_Net
 			}
 			else
 			{
-				Bail("Error on accept", Common.SocketError());
+				Bail("Error on accept", SocketError());
 			}
 
 			return false;
@@ -576,16 +605,8 @@ namespace Beef_Net
 
 			if (SetupSocket(aPort, aAddress))
 			{
-				Common.Connect(_handle, GetIPAddressPointer(), GetIPAddressLength());
-				/*
-				if (res != 0)
-				{
-#if DEBUG
-  					System.Diagnostics.Debug.WriteLine("Socket connect error");
-#endif
-					return false;
-				}
-				*/
+				Connect(_handle, GetIPAddressPointer(), GetIPAddressLength());
+
 				_connectionStatus = .Connecting;
 				return true;
 			}
@@ -622,7 +643,7 @@ namespace Beef_Net
 
 			if (ReceivePossible())
 			{
-				result = DoGet(aData, aSize);
+				result = DoRecv(aData, aSize);
 
 				if (result == 0)
 				{
@@ -663,5 +684,207 @@ namespace Beef_Net
 			else
 				SoftDisconnect();
 		}
+
+        public static bool SetNoDelay(fd_handle aHandle, bool aValue)
+        {
+        	uint32 opt = aValue ? 1 : 0;
+        	
+        	if (SetSockOpt(aHandle, PROTO_TCP, TCP_NODELAY, &opt, sizeof(int)) < 0)
+        		return false;
+
+        	return true;
+        }
+
+        public static bool SetBlocking(fd_handle aHandle, bool aValue)
+        {
+        	uint32 opt = aValue ? 1 : 0;
+        	
+        	if (IOCtlSocket(aHandle, (int32)FIONBIO, &opt) == SOCKET_ERROR)
+        		return false;
+
+        	return true;
+        }
+
+        public static bool IsBlockError(int32 aErrorNum) =>
+#if BF_PLATFORM_WINDOWS
+        	aErrorNum == WSAEWOULDBLOCK;
+#else
+            aErrorNum == EWOULDBLOCK;
+#endif
+
+        public static bool IsNonFatalError(int32 aErrorNum) =>
+#if BF_PLATFORM_WINDOWS
+        	(aErrorNum == WSAEINVAL)        || (aErrorNum == WSAEFAULT)       ||
+        	(aErrorNum == WSAEOPNOTSUPP)    || (aErrorNum == WSAEMSGSIZE)     ||
+        	(aErrorNum == WSAEADDRNOTAVAIL) || (aErrorNum == WSAEAFNOSUPPORT) ||
+        	(aErrorNum == WSAEDESTADDRREQ);
+#else
+            (aErrorNum == EINVAL)        || (aErrorNum == EFAULT)       ||
+            (aErrorNum == EOPNOTSUPP)    || (aErrorNum == EMSGSIZE)     ||
+            (aErrorNum == EADDRNOTAVAIL) || (aErrorNum == EAFNOSUPPORT) ||
+            (aErrorNum == EDESTADDRREQ);
+#endif
+
+        public static bool IsPipeError(int32 aErrorNum)
+        {
+#if BF_PLATFORM_WINDOWS
+        	bool result = aErrorNum == WSAECONNRESET;
+#else
+            bool result = aErrorNum == ECONNRESET;
+#endif
+        	return result;
+        }
+
+        public static int32 SocketError() =>
+#if BF_PLATFORM_WINDOWS
+        	(int32)WinSock2.WSAGetLastError();
+#else
+            UnixSock.geterrno();
+#endif
+
+        public static void StrError(int32 aErrNum, String aOutStr, bool aIndUseUTF8 = false)
+        {
+            aOutStr.AppendF(" [{0}]: ", aErrNum);
+            String tmp = scope .();
+#if BF_PLATFORM_WINDOWS
+        	uint32 MAX_ERROR = 1024;
+
+        	if (aIndUseUTF8)
+        	{
+        		char16* tmpPtr = scope char16[MAX_ERROR]*;
+        		FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_ARGUMENT_ARRAY, null, (uint32)aErrNum, 0, &tmpPtr[0], MAX_ERROR, null);
+        		System.Text.UTF16.Decode(tmpPtr, tmp);
+        	}
+        	else
+        	{
+        		char8* tmpPtr = scope char8[MAX_ERROR]*;
+        		int len = (int)FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_ARGUMENT_ARRAY, null, (uint32)aErrNum, 0, &tmpPtr[0], MAX_ERROR, null);
+        		tmp.Append(tmpPtr, len);
+        	}
+
+        	aOutStr.Append(tmp);
+#elif BF_PLATFORM_LINUX
+        	aOutStr.Append(Socket.StrError(aErrNum, tmp));
+#endif
+        }
+
+        public static fd_handle Accept(fd_handle aHandle, SockAddr* aAddr, int32* aAddrLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.accept(aHandle, (sockaddr_in*)aAddr, aAddrLen);
+#else
+            UnixSock.accept(aHandle, aAddr, aAddrLen);
+#endif
+
+        public static int32 Bind(fd_handle aHandle, SockAddr* aName, int32 aNameLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.bind(aHandle, (sockaddr_in*)aName, aNameLen);
+#else
+            UnixSock.bind(aHandle, aName, aNameLen);
+#endif
+
+        public static int32 CloseSocket(fd_handle aHandle) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.closesocket(aHandle);
+#else
+            UnixSock.close(aHandle);
+#endif
+
+        public static int32 Connect(fd_handle aHandle, SockAddr* aName, int32 aNameLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.connect(aHandle, (sockaddr_in*)aName, aNameLen);
+#else
+            UnixSock.connect(aHandle, aName, aNameLen);
+#endif
+
+        public static int32 IOCtlSocket(fd_handle aHandle, int32 cmd, uint32* aArgP) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.ioctlsocket(aHandle, cmd, aArgP);
+#else
+            UnixSock.ioctl(aHandle, cmd, (int*)aArgP);
+#endif
+
+        public static int32 GetPeerName(fd_handle aHandle, SockAddr* aName, int32* aNameLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.getpeername(aHandle, (sockaddr_in*)aName, aNameLen);
+#else
+            UnixSock.getpeername(aHandle, aName, aNameLen);
+#endif
+
+        public static int32 GetSockName(fd_handle aHandle, SockAddr* aName, int32* aNameLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.getsockname(aHandle, (sockaddr_in*)aName, aNameLen);
+#else
+            UnixSock.getsockname(aHandle, aName, aNameLen);
+#endif
+
+        public static int32 SetSockOpt(fd_handle aHandle, int32 aLevel, int32 aOptName, void* aOptVal, int32 aOptLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.setsockopt(aHandle, aLevel, aOptName, aOptVal, aOptLen);
+#else
+            UnixSock.setsockopt(aHandle, aLevel, aOptName, aOptVal, aOptLen);
+#endif
+            
+        public static int32 GetSockOpt(fd_handle aHandle, int32 aLevel, int32 aOptName, void* aOptVal, int32* aOptLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.getsockopt(aHandle, aLevel, aOptName, aOptVal, aOptLen);
+#else
+            UnixSock.getsockopt(aHandle, aLevel, aOptName, aOptVal, aOptLen);
+#endif
+
+        public static int32 Listen(fd_handle aHandle, int32 aBacklog) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.listen(aHandle, aBacklog);
+#else
+            UnixSock.listen(aHandle, aBacklog);
+#endif
+
+        public static int32 Recv(fd_handle aHandle, uint8* aBuf, int32 aLen, int32 aFlags) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.recv(aHandle, aBuf, aLen, aFlags);
+#else
+            UnixSock.recv(aHandle, aBuf, aLen, aFlags);
+#endif
+
+        public static int32 RecvFrom(fd_handle aHandle, uint8* aBuf, int32 aLen, int32 aFlags, SockAddr* aFromAddr, int32* aFromLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.recvfrom(aHandle, aBuf, aLen, aFlags, (sockaddr_in*)aFromAddr, aFromLen);
+#else
+            UnixSock.recvfrom(aHandle, aBuf, aLen, aFlags, aFromAddr, aFromLen);
+#endif
+
+        public static int32 Select(int nfds, fd_set* aReadFds, fd_set* aWriteFds, fd_set* aExceptFds, TimeVal* timeout) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.select(nfds, aReadFds, aWriteFds, aExceptFds, timeout);
+#else
+            UnixSock.select((int32)nfds, aReadFds, aWriteFds, aExceptFds, timeout);
+#endif
+
+        public static int32 Send(fd_handle aHandle, uint8* aBuf, int32 aLen, int32 aFlags) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.send(aHandle, aBuf, aLen, aFlags);
+#else
+            UnixSock.send(aHandle, aBuf, aLen, aFlags);
+#endif
+
+        public static int32 SendTo(fd_handle aHandle, uint8* aBuf, int32 aLen, int32 aFlags, SockAddr* aToAddr, int32 aToLen) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.sendto(aHandle, aBuf, aLen, aFlags, (sockaddr_in*)aToAddr, aToLen);
+#else
+            UnixSock.sendto(aHandle, aBuf, aLen, aFlags, aToAddr, aToLen);
+#endif
+
+        public static int32 Shutdown(fd_handle aHandle, int32 aHow) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.shutdown(aHandle, aHow);
+#else
+            UnixSock.shutdown(aHandle, aHow);
+#endif
+
+        public static fd_handle Socket(int32 aAf, int32 aType, int32 aProtocol) =>
+#if BF_PLATFORM_WINDOWS
+        	WinSock2.socket(aAf, aType, aProtocol);
+#else
+            UnixSock.shutdown(aAf, aType);
+#endif
 	}
 }

@@ -188,7 +188,7 @@ namespace Beef_Net
 			if (_onError != null)
 			{
 				String errStr = scope .(aMsg);
-				Common.StrError(aErrNum, errStr);
+				Socket.StrError(aErrNum, errStr);
 				_onError(errStr, this);
 			}
 
@@ -470,11 +470,11 @@ namespace Beef_Net
 			TimeVal tempTime = _timeout;
 
 			int n = _timeout.tv_sec >= 0
-				? Common.Select((int)(maxHandle + 1), &_readFDSet, &_writeFDSet, &_errorFDSet, &tempTime)
-				: Common.Select((int)(maxHandle + 1), &_readFDSet, &_writeFDSet, &_errorFDSet, null);
+				? Socket.Select((int)(maxHandle + 1), &_readFDSet, &_writeFDSet, &_errorFDSet, &tempTime)
+				: Socket.Select((int)(maxHandle + 1), &_readFDSet, &_writeFDSet, &_errorFDSet, null);
 			
 			if (n < 0)
-				Bail("Error on select", Common.SocketError());
+				Bail("Error on select", Socket.SocketError());
 
 			result = n > 0;
 			
@@ -496,7 +496,7 @@ namespace Beef_Net
 						if (temp.[Friend]_onError != null && !temp.IgnoreError)
 						{
 							String errStr = scope .("Handle error");
-							Common.StrError(Common.SocketError(), errStr);
+							Socket.StrError(Socket.SocketError(), errStr);
 							temp.[Friend]_onError(temp, errStr);
 						}
 

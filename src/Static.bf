@@ -523,11 +523,11 @@ namespace Beef_Net
 		public const uint16 SD_BOTH  = 0x02;
 
 		// Address constants
-		public static readonly String ADDR_ANY  = "0.0.0.0";
-		public static readonly String ADDR_BR   = "255.255.255.255";
-		public static readonly String ADDR_LO   = "127.0.0.1";
-		public static readonly String ADDR6_ANY = "::0";
-		public static readonly String ADDR6_LO  = "::1";
+		public const String ADDR_ANY  = "0.0.0.0";
+		public const String ADDR_BR   = "255.255.255.255";
+		public const String ADDR_LO   = "127.0.0.1";
+		public const String ADDR6_ANY = "::0";
+		public const String ADDR6_LO  = "::1";
 
 		// ICMP
 		public const int32 ICMP_ECHOREPLY     = 0;
@@ -665,11 +665,11 @@ namespace Beef_Net
 						if (aRet <= 0) // EOF or BIO crap, we skip those
 							return result;
 
-						result = Common.IsNonFatalError(aRet);
+						result = Socket.IsNonFatalError(aRet);
 					}
 					else  // check what exactly
 					{
-						return Common.IsNonFatalError(tmp);
+						return Socket.IsNonFatalError(tmp);
 					}
 				} while(tmp > 0); // we need to empty the queue
 

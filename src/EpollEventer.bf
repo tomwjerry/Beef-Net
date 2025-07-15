@@ -79,12 +79,12 @@ namespace Beef_Net
 			if (!aHandle.IgnoreRead)
 			{
 			  	if (EPoll.ctl(_epollReadFD, EPoll.EPOLL_CTL_ADD, aHandle.[Friend]_handle, &event) < 0)
-			    	Bail("Error modifying handle for reads", Common.SocketError());
+			    	Bail("Error modifying handle for reads", Socket.SocketError());
 			}
 			else
 			{
 			  	if (EPoll.ctl(_epollReadFD, EPoll.EPOLL_CTL_DEL, aHandle.[Friend]_handle, &event) < 0)
-			    	Bail("Error modifying handle for reads", Common.SocketError());
+			    	Bail("Error modifying handle for reads", Socket.SocketError());
 			}
 		}
 
@@ -107,7 +107,7 @@ namespace Beef_Net
 			if (_epollFD < 0 || _epollReadFD < 0 || _epollMasterFD < 0)
 			{
 				String tmp = scope .("Unable to create epoll: ");
-				Common.StrError(Common.geterrno(), tmp);
+				Socket.StrError(Socket.SocketError(), tmp);
 				Runtime.FatalError(tmp);
 			}
 
@@ -118,7 +118,7 @@ namespace Beef_Net
 			if (EPoll.ctl(_epollMasterFD, EPoll.EPOLL_CTL_ADD, _epollFD, &event) < 0)
 			{
 				String tmp = scope .("Unable to add FDs to master epoll FD: ");
-				Common.StrError(Common.geterrno(), tmp);
+				Socket.StrError(Socket.SocketError(), tmp);
 				Runtime.FatalError(tmp);
 			}
 
@@ -127,7 +127,7 @@ namespace Beef_Net
 			if (EPoll.ctl(_epollMasterFD, EPoll.EPOLL_CTL_ADD, _epollReadFD, &event) < 0)
 			{
 				String tmp = scope .("Unable to add FDs to master epoll FD: ");
-				Common.StrError(Common.geterrno(), tmp);
+				Socket.StrError(Socket.SocketError(), tmp);
 				Runtime.FatalError(tmp);
 			}
 		}
@@ -154,13 +154,13 @@ namespace Beef_Net
 				event.Data.ptr = &aHandle;
 
 				if (EPoll.ctl(_epollFD, EPoll.EPOLL_CTL_ADD, aHandle.[Friend]_handle, &event) < 0)
-					Bail("Error adding handle to epoll", Common.SocketError());
+					Bail("Error adding handle to epoll", Socket.SocketError());
 
 				event.Events = EPoll.EPOLLIN | EPoll.EPOLLPRI | EPoll.EPOLLHUP;
 
 				if (!aHandle.IgnoreRead)
 					if (EPoll.ctl(_epollReadFD, EPoll.EPOLL_CTL_ADD, aHandle.[Friend]_handle, &event) < 0)
-						Bail("Error adding handle to epoll", Common.SocketError());
+						Bail("Error adding handle to epoll", Socket.SocketError());
 					
 				if (_count >= _events.Count)
 					Inflate();
@@ -192,7 +192,7 @@ namespace Beef_Net
 				}
 
 			    if (changes < 0 || readChanges < 0)
-			      	Bail("Error on epoll", Common.SocketError());
+			      	Bail("Error on epoll", Socket.SocketError());
 			    else
 			      	result = changes + readChanges > 0;
 
@@ -242,7 +242,7 @@ namespace Beef_Net
 						    	if (temp.[Friend]_onError != null && !temp.IgnoreError)
 								{
 									String tmpStr = scope .("Handle error");
-									Common.StrError(Common.SocketError(), tmpStr);
+									Socket.StrError(Socket.SocketError(), tmpStr);
 						      		temp.[Friend]_onError(temp, tmpStr);
 								}
 
@@ -259,7 +259,7 @@ namespace Beef_Net
 			}
 			else if (masterChanges < 0)
 			{		
-		    	Bail("Error on epoll", Common.SocketError());
+		    	Bail("Error on epoll", Socket.SocketError());
 			}
 
 			return result;

@@ -210,6 +210,12 @@ namespace Beef_Net
 
 		[Import("ws2_32.dll"), CLink, CallingConvention(.Stdcall)]
 		public extern static int32 __WSAFDIsSet(fd_handle aSocket, ref fd_set aFDSet);
+
+        [Import("kernel32.dll"), CLink, CallingConvention(.Stdcall)]
+        private extern static uint32 FormatMessageA(uint32 dwFlags, void* lpSource, uint32 dwMessageId, uint32 dwLanguageId, char8* lpBuffer, uint32 nSize, void* Arguments);
+    
+        [Import("kernel32.dll"), CLink, CallingConvention(.Stdcall)]
+        private extern static uint32 FormatMessageW(uint32 dwFlags, void* lpSource, uint32 dwMessageId, uint32 dwLanguageId, char16* lpBuffer, uint32 nSize, void* Arguments);
 	}
 #endif
 }

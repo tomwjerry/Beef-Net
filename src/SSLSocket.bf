@@ -85,10 +85,10 @@ namespace Beef_Net
 			return base.DoSend(aData, aSize);
 		}
 
-		protected override int32 DoGet(uint8* aData, int32 aSize) =>
+		protected override int32 DoRecv(uint8* aData, int32 aSize) =>
 			_socketState.HasFlag(.SSLActive)
 				? (int32)SSL.read(_SSL, aData, aSize)
-				: base.DoGet(aData, aSize);
+				: base.DoRecv(aData, aSize);
 
 		protected override int32 HandleResult(int32 aResult, SocketOperation aOp)
 		{
@@ -123,7 +123,7 @@ namespace Beef_Net
 				tmp.Append(" error");
 		      	LogError(tmp, lastErr);
 		    }
-			else if (aOp == .Send && Common.IsPipeError(lastErr))
+			else if (aOp == .Send && Socket.IsPipeError(lastErr))
 			{
 		      	HardDisconnect(true);
 		    }
