@@ -5,13 +5,14 @@ namespace Beef_Net
 {
 	public enum SocketState
 	{
-		ServerSocket = 0x00,
-		Blocking = 0x01,
-		ReuseAddress = 0x02,
-		CanSend = 0x04,
-		CanReceive = 0x08,
-		SSLActive = 0x10,
-		NoDelay = 0x20
+        Anything = 0x00,
+		ServerSocket = 0x01,
+		Blocking = 0x02,
+		ReuseAddress = 0x04,
+		CanSend = 0x08,
+		CanReceive = 0x10,
+		SSLActive = 0x20,
+		NoDelay = 0x40
 	}
 
 	public enum SocketConnectionStatus
@@ -752,13 +753,15 @@ namespace Beef_Net
         	if (aIndUseUTF8)
         	{
         		char16* tmpPtr = scope char16[MAX_ERROR]*;
-        		FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_ARGUMENT_ARRAY, null, (uint32)aErrNum, 0, &tmpPtr[0], MAX_ERROR, null);
+        		WinSock2.FormatMessageW(Common.FORMAT_MESSAGE_FROM_SYSTEM | Common.FORMAT_MESSAGE_IGNORE_INSERTS | Common.FORMAT_MESSAGE_ARGUMENT_ARRAY,
+                    null, (uint32)aErrNum, 0, &tmpPtr[0], MAX_ERROR, null);
         		System.Text.UTF16.Decode(tmpPtr, tmp);
         	}
         	else
         	{
         		char8* tmpPtr = scope char8[MAX_ERROR]*;
-        		int len = (int)FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_ARGUMENT_ARRAY, null, (uint32)aErrNum, 0, &tmpPtr[0], MAX_ERROR, null);
+        		int len = (int)WinSock2.FormatMessageA(Common.FORMAT_MESSAGE_FROM_SYSTEM | Common.FORMAT_MESSAGE_IGNORE_INSERTS | Common.FORMAT_MESSAGE_ARGUMENT_ARRAY,
+                    null, (uint32)aErrNum, 0, &tmpPtr[0], MAX_ERROR, null);
         		tmp.Append(tmpPtr, len);
         	}
 

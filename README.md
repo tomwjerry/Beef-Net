@@ -17,8 +17,10 @@ Beef-Net relies on [Beef-OpenSSL](https://github.com/thibmo/Beef-OpenSSL) for ha
 ## Where is the HTTP functionality?
 
 I moved the HTTP socket, client, and server to https://github.com/tomwjerry/Beef-Http-Server/tree/main
+
 In the future, FTP, SMTP and Telnet will also be in own repos. So that one can download the desired
 networking service without needing the others. Beef-Net will be required for those, and most likely Beef-OpenSSL.
+
 I will drop the Beef-OpenSSL from this library in the future, but as with most networking, SSL is desired...
 
 ## Examples
