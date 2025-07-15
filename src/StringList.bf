@@ -116,13 +116,13 @@ namespace Beef_Net
 			if (len - aPos <= 0)
 				return false;
 
-			if (len - aPos == 1 && HttpUtil.Search(NewlineChars, aStr[aPos]) == -1)
+			if (len - aPos == 1 && NewlineChars.Contains(aStr[aPos]))
 			{
 				aOutStr.Append(aStr[aPos++]);
 				return true;
 			}
 
-			while (len - aPos > 0 && HttpUtil.Search(NewlineChars, aStr[aPos]) == -1)
+			while (len - aPos > 0 && NewlineChars.Contains(aStr[aPos]))
 				aOutStr.Append(aStr[aPos++]);
 
 			if (aPos < len && aStr[aPos] == '\r') // Point to character after #13
@@ -188,7 +188,7 @@ namespace Beef_Net
 					j = 0;
 
 					// Quote strings that include BreakChars
-					while (j < str.Length && HttpUtil.Search(breakChars, str[j]) == -1)
+					while (j < str.Length && breakChars.Contains(str[j]))
 						j++;
 
 					doQuote = j < str.Length - 1;

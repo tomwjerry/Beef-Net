@@ -513,9 +513,9 @@ namespace Beef_Net
 				int result = -1;
 
 				if (aStr.Length > 3 &&
-					HttpUtil.Search(HttpUtil.Numeric, aStr[0]) > -1 &&
-					HttpUtil.Search(HttpUtil.Numeric, aStr[1]) > -1 &&
-					HttpUtil.Search(HttpUtil.Numeric, aStr[2]) > -1)
+					aStr[0].IsNumber &&
+					aStr[1].IsNumber &&
+                    aStr[2].IsNumber)
 					if (int.Parse(aStr.Substring(0, 3)) case .Ok(let val))
 						result = val;
 
@@ -525,9 +525,9 @@ namespace Beef_Net
 			mixin ValidResponse(StringView aLocAnswer)
 			{
 				bool result = aLocAnswer.Length >= 3 &&
-					HttpUtil.Search(SmallNumeric, aLocAnswer[0]) > -1 &&
-					HttpUtil.Search(HttpUtil.Numeric, aLocAnswer[1]) > -1 &&
-					HttpUtil.Search(HttpUtil.Numeric, aLocAnswer[2]) > -1;
+					aLocAnswer[0] >= '0' && aLocAnswer[0] <= '5' &&
+					aLocAnswer[1].IsNumber &&
+					aLocAnswer[2].IsNumber;
 				
 				if (result)
 					result = aLocAnswer.Length == 3 || (aLocAnswer.Length > 3 && aLocAnswer[3] == ' ');

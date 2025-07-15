@@ -55,7 +55,7 @@ namespace Beef_Net
 			int l = aStr.Length;
 
 			for (int i = 0; i < aStr.Length; i++)
-				if (HttpUtil.Search(aAllowed, aStr[i]) < 0)
+				if (!aAllowed.Contains(aStr[i]))
 					l += 2;
 
 			if (l == aStr.Length)
@@ -66,7 +66,7 @@ namespace Beef_Net
 
 			for (char8 char in aStr.RawChars)
 			{
-				if (HttpUtil.Search(aAllowed, char) < 0)
+				if (!aAllowed.Contains(char))
 				{
 					aOutStr.Append('%');
 					((uint8)char).ToString(aOutStr, "X2", CultureInfo.InvariantCulture);
@@ -91,7 +91,7 @@ namespace Beef_Net
 			{
 				if (aStr[i] == '%')
 				{
-					ptr[realLen++] = (char8)(HttpUtil.HexToUInt8(aStr[i + 1]) << 4 | HttpUtil.HexToUInt8(aStr[i + 2]));
+					ptr[realLen++] = (char8)(UInt8.Parse(aStr.Substring(i + 1, 1), .Hex) << 4 | UInt8.Parse(aStr.Substring(i + 2, 1), .Hex));
 					i += 3;
 				}
 				else
@@ -219,7 +219,7 @@ namespace Beef_Net
 					str.Remove(0, i + 1);
 					break;
 				}
-				else if (!((i == 0 && HttpUtil.Search(Alpha, str[i]) > -1) || HttpUtil.Search(AbsoluteUriChars, str[i]) > -1))
+				else if ((i != 0 || !str[i].IsLetter) && !AbsoluteUriChars.Contains(str[i]))
 				{
 					break;
 				}
@@ -343,7 +343,7 @@ namespace Beef_Net
 				bool validPort = true;
 
 				for (j = i + 1; j < authority.Length; j++)
-					if (HttpUtil.Search(Numeric, authority[j]) == -1)
+					if (!authority[j].IsNumber)
 					{
 						validPort = false;
 						break;
@@ -511,7 +511,7 @@ namespace Beef_Net
 		public static void FilenameToUri(StringView aFilename, String aOutStr, bool aIndEncode = true)
 		{
 			bool isAbsPath = ((!aFilename.IsEmpty) && aFilename[0] == IO.Path.DirectorySeparatorChar) ||
-				(aFilename.Length > 2 && HttpUtil.Search(Alpha, aFilename[0]) != -1 && aFilename[1] == ':');
+				(aFilename.Length > 2 && aFilename[0].IsLetter && aFilename[1] == ':');
 
 			aOutStr.Set("file:");
 
@@ -539,7 +539,7 @@ namespace Beef_Net
 			{
 				if (aUriReference[i] == ':')
 					return true;
-				else if (!((i == 0 && HttpUtil.Search(Alpha, aUriReference[i]) >= 0) || HttpUtil.Search(AbsoluteUriChars, aUriReference[i]) >= 0))
+				else if ((i != 0 || !aUriReference[i].IsLetter) && !AbsoluteUriChars.Contains(aUriReference[i]))
 					break;
 			}
 

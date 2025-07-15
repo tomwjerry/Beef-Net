@@ -224,7 +224,7 @@ namespace Beef_Net
 							{
 								char = scanBuf[i];
 
-								if (HttpUtil.Search(AlphabetNoPad, char) > -1) // Base64 encoding characters except '=' (padding char)
+								if (AlphabetNoPad.Contains(char)) // Base64 encoding characters except '=' (padding char)
 									result++;
 								else if (char == '=') // End marker '=' / padding
 									break;
