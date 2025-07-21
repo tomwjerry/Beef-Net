@@ -550,6 +550,7 @@ namespace Beef_Net
 				}
 			case .SSLActive:    Runtime.FatalError("Can not turn SSL/TLS on in TLSocket instance");
 			case .NoDelay:      SetNoDelay(aIndTurnOn);
+            default: break;
 			}
 
 			return true;
