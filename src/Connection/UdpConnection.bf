@@ -81,6 +81,12 @@ namespace Beef_Net.Connection
 			}
 		}
 
+        protected void SetAddress(SocketAddress aAddress)
+        {
+            _rootSock.[Friend]_peerAddress = aAddress;
+            _rootSock.[Friend]_socketNet = aAddress.Family;
+        }
+
 		public this(): base()
 		{
 			_timeVal.tv_usec = 0;
@@ -163,6 +169,17 @@ namespace Beef_Net.Connection
 			return 0;
 		}
 
+        public int32 SendMessage(StringView aMsg, SocketAddress aAddress)
+        {
+        	if (_rootSock != null)
+        	{
+        		SetAddress(aAddress);
+        		return _rootSock.SendMessage(aMsg);
+        	}
+
+        	return 0;
+        }
+
 		public override int32 Send(uint8* aData, int32 aSize, Socket aSocket = null)
 		{
 			if (_rootSock != null)
@@ -181,6 +198,17 @@ namespace Beef_Net.Connection
 
 			return 0;
 		}
+
+        public int32 Send(uint8* aData, int32 aSize, SocketAddress aAddress)
+        {
+        	if (_rootSock != null)
+        	{
+        		SetAddress(aAddress);
+        		return _rootSock.Send(aData, aSize);
+        	}
+
+        	return 0;
+        }
 
 		public override bool IterNext() =>
 			false;

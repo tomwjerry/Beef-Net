@@ -61,7 +61,7 @@ namespace Beef_Net
     	public uint8[26] sa_data; // up to 26 bytes of direct address
     }
 
-    public struct SocketAddress
+    public struct SocketAddress : IHashable
     {
     	public sa_family_t Family;
     	public USockAddr u;
@@ -72,6 +72,22 @@ namespace Beef_Net
     		public sockaddr_in IPv4;
     		public sockaddr_in6 IPv6;
     	}
+
+        public int GetHashCode()
+        {
+            if (Family == AF_INET)
+            {
+                return u.IPv4.sin_addr.s_addr.GetHashCode() ^ u.IPv4.sin_port.GetHashCode();
+            }
+            else
+            {
+                return u.IPv6.sin6_addr.s6_addr32[0].GetHashCode() ^
+                    u.IPv6.sin6_addr.s6_addr32[1].GetHashCode() ^
+                    u.IPv6.sin6_addr.s6_addr32[2].GetHashCode() ^
+                    u.IPv6.sin6_addr.s6_addr32[3].GetHashCode() ^
+                    u.IPv6.sin6_port.GetHashCode();
+            }
+        }
     }
 
     [CRepr]
@@ -91,7 +107,7 @@ namespace Beef_Net
 	public delegate void SocketProgressEvent(Socket aSocket, int aBytes);
 
 	[AlwaysInclude(IncludeAllMethods=true), Reflect(.All)]
-	public class Socket : Handle
+	public class Socket : Handle, IHashable
 	{
 		protected SocketAddress _address;
 		protected SocketAddress _peerAddress;
@@ -133,6 +149,7 @@ namespace Beef_Net
 			get { return _socketNet; }
 			set { _socketNet = value; }
 		}
+
 		public uint16 PeerPort
 		{
 			get {
@@ -142,6 +159,25 @@ namespace Beef_Net
 			}
 		}
 		public uint16 LocalPort { get { return Common.ntohs(_address.u.IPv4.sin_port); } }
+
+        public SocketAddress PeerAddress
+        {
+            get
+            {
+                if (_socketType == SOCK_STREAM)
+                {
+                    return _address;
+                }
+                
+                return _peerAddress;
+            }
+        }
+
+        public SocketAddress LocalAddress
+        {
+            get { return _address; }
+        }
+
 		public ref Socket NextSock
 		{
 			get { return ref _nextSock; }
@@ -155,6 +191,11 @@ namespace Beef_Net
 		public SocketState SocketState { get { return _socketState; } }
 		public ref Component Creator { get { return ref _creator; } }
 		public ref Session Session { get { return ref _session; } }
+
+        public int GetHashCode()
+        {
+            return _handle.GetHashCode();
+        }
 		
 		protected SockAddr* GetIPAddressPointer()
 		{
@@ -222,27 +263,37 @@ namespace Beef_Net
 			return done;
 		}
 
-		protected virtual int32 DoSend(uint8* aData, int32 aSize)
+        protected virtual int32 DoSend(uint8* aData, int32 aSize)
+        {
+            return DoSend(aData, aSize);
+        }
+
+		protected virtual int32 DoSend(uint8* aData, int32 aSize, SocketAddress? addr)
 		{
-			if (_socketType == SOCK_STREAM)
+			if (_socketType == SOCK_STREAM && !addr.HasValue)
 			{
 				return Send(_handle, aData, aSize, MSG);
 			}
 			else
 			{
 				int32 addrLen;
+                SocketAddress taddr = _peerAddress;
+                if (addr.HasValue)
+                {
+                    taddr = addr.Value;
+                }
 
 				switch (_address.u.IPv4.sin_family)
 				{
 				case AF_INET:
 					{
 						addrLen = sizeof(sockaddr_in);
-						return SendTo(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv4, addrLen);
+						return SendTo(_handle, aData, aSize, MSG, (SockAddr*)&taddr.u.IPv4, addrLen);
 					}
 				case AF_INET6:
 					{
 						addrLen = sizeof(sockaddr_in6);
-						return SendTo(_handle, aData, aSize, MSG, (SockAddr*)&_peerAddress.u.IPv6, addrLen);
+						return SendTo(_handle, aData, aSize, MSG, (SockAddr*)&taddr.u.IPv6, addrLen);
 					}
 				}
 			}
@@ -379,7 +430,7 @@ namespace Beef_Net
 			SetBlocking(_blocking);
 		}
 
-		protected void SetBlocking(bool aValue)
+		public void SetBlocking(bool aValue)
 		{
 			if (_handle != INVALID_SOCKET) // we already have a socket
 			{
@@ -616,24 +667,24 @@ namespace Beef_Net
 			return false;
 		}
 
-		public virtual int32 Send(uint8* aData, int32 aSize)
-		{
-			int32 result = 0;
-			Runtime.Assert(aSize != 0);
+        public virtual int32 Send(uint8* aData, int32 aSize, SocketAddress? addr = null)
+        {
+            int32 result = 0;
+            Runtime.Assert(aSize != 0);
 
-			if (SendPossible())
-			{
-				if (aSize <= 0)
-				{
-					LogError("Send error: Size <= 0", -1);
-					return 0;
-				}
+            if (SendPossible())
+            {
+            	if (aSize <= 0)
+            	{
+            		LogError("Send error: Size <= 0", -1);
+            		return 0;
+            	}
 
-				return HandleResult(DoSend(aData, aSize), .Send);
-			}
+            	return HandleResult(DoSend(aData, aSize, addr), .Send);
+            }
 
-			return result;
-		}
+            return result;
+        }
 
 		public int32 SendMessage(StringView aMsg) =>
 			Send((uint8*)aMsg.Ptr, (int32)aMsg.Length);
