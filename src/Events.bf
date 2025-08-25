@@ -146,6 +146,8 @@ namespace Beef_Net
 
 			if (_eventer != null && _eventer.[Friend]_inLoop)
 				_eventer.[Friend]AddForFree(this);
+            else
+                delete this;
 
 			Platform.BfpCritSect_Leave(CS);
 		}

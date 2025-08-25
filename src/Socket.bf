@@ -73,6 +73,35 @@ namespace Beef_Net
     		public sockaddr_in6 IPv6;
     	}
 
+        public this()
+        {
+            this = default;
+        }
+
+        public this(SocketAddress cpysa)
+        {
+            Family = cpysa.Family;
+            u = USockAddr();
+            if (Family == AF_INET)
+            {
+                u.IPv4 = sockaddr_in();
+                u.IPv4.sin_addr = in_addr();
+                u.IPv4.sin_addr.s_addr = cpysa.u.IPv4.sin_addr.s_addr;
+                u.IPv4.sin_family = cpysa.u.IPv4.sin_family;
+                u.IPv4.sin_port = cpysa.u.IPv4.sin_port;
+            }
+            else
+            {
+                u.IPv6 = sockaddr_in6();
+                u.IPv6.sin6_addr = in6_addr();
+                u.IPv6.sin6_addr.u6_addr32 = cpysa.u.IPv6.sin6_addr.u6_addr32;
+                u.IPv6.sin6_family = cpysa.u.IPv6.sin6_family;
+                u.IPv6.sin6_port = cpysa.u.IPv6.sin6_port;
+                u.IPv6.sin6_flowinfo = cpysa.u.IPv6.sin6_flowinfo;
+                u.IPv6.sin6_scope_id = cpysa.u.IPv6.sin6_scope_id;
+            }    
+        }    
+
         public int GetHashCode()
         {
             if (Family == AF_INET)

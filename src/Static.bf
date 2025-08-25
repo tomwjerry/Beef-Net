@@ -605,18 +605,6 @@ namespace Beef_Net
 			}
 		}
 
-		/*
-		// lws2override.pp version... Wut?
-		public static void FD_SET(fd_handle aFd, ref fd_set aFDSet)
-		{
-			if (aFDSet.fd_count < FD_SETSIZE)
-			{
-				aFDSet.fd_array[aFDSet.fd_count] = aFd;
-				aFDSet.fd_count++;
-			}
-		}
-		*/
-
 		[Inline]
 		public static void FD_ZERO(ref fd_set aFDSet) =>
 			aFDSet.fd_count = 0;
