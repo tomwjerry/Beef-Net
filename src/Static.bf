@@ -687,7 +687,7 @@ namespace Beef_Net
 		{
 #if BF_PLATFORM_WINDOWS
 			WSAData dump = .();
-			WinSock2.WSAStartup(0x101, &dump);
+			WinSock2.WSAStartup(0x0202, &dump);
 #endif
 
 			/*
